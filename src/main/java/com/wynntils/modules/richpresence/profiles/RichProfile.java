@@ -1,5 +1,5 @@
 /*
- *  * Copyright © Wynntils - 2018 - 2021.
+ *  * Copyright © Wynntils - 2021.
  */
 
 package com.wynntils.modules.richpresence.profiles;
@@ -12,6 +12,7 @@ import com.sun.jna.ptr.IntByReference;
 import com.wynntils.ModCore;
 import com.wynntils.Reference;
 import com.wynntils.core.framework.instances.PlayerInfo;
+import com.wynntils.core.framework.instances.data.SocialData;
 import com.wynntils.core.utils.helpers.MD5Verification;
 import com.wynntils.modules.richpresence.discordgamesdk.*;
 import com.wynntils.modules.richpresence.discordgamesdk.converters.EnumConverter;
@@ -56,10 +57,14 @@ public class RichProfile {
     private long applicationID = 0;
 
     public RichProfile(long id) {
-        RequestHandler handler = new RequestHandler();
-        String apiRoot = (WebManager.getApiUrls() == null ? null : WebManager.getApiUrls().get("RichPresenceRoot")) + GAME_SDK_VERSION;
-        String url = apiRoot == null ? null : apiRoot + "/versioning.php";
         setupTypeMapper();
+        if (WebManager.getApiUrls() == null) {
+            return;
+        }
+        String apiRoot = WebManager.getApiUrls().get("RichPresenceRoot") + GAME_SDK_VERSION;
+        String url = apiRoot + "/versioning.php";
+        RequestHandler handler = new RequestHandler();
+
         handler.addRequest(new Request(url, "richpresence_versioning_" + GAME_SDK_VERSION)
                 .cacheTo(new File(Reference.NATIVES_ROOT, "richpresence_versioning_" + GAME_SDK_VERSION + ".txt"))
                 .handleWebReader(reader -> {
@@ -69,7 +74,7 @@ public class RichProfile {
                         return true;
                     }
 
-                    if (md5 == null || apiRoot == null) {
+                    if (md5 == null) {
                         // No sdk on this platform or webapi is down
                         setDisabled();
                         return true;
@@ -239,7 +244,7 @@ public class RichProfile {
             richPresenceParty.id = toBytes(joinSecret.id, 128);
             richPresenceParty.privacy = EDiscordActivityPartyPrivacy.DiscordActivityParty_Privacy_Private;
             DiscordPartySize partySize = new DiscordPartySize();
-            partySize.current_size = PlayerInfo.getPlayerInfo().getPlayerParty().getPartyMembers().size();
+            partySize.current_size = PlayerInfo.get(SocialData.class).getPlayerParty().getPartyMembers().size();
             partySize.max_size = 15;
             richPresenceParty.size = partySize;
         }
@@ -290,7 +295,7 @@ public class RichProfile {
             richPresenceParty.id = toBytes(joinSecret.id, 128);
             richPresenceParty.privacy = EDiscordActivityPartyPrivacy.DiscordActivityParty_Privacy_Private;
             DiscordPartySize partySize = new DiscordPartySize();
-            partySize.current_size = PlayerInfo.getPlayerInfo().getPlayerParty().getPartyMembers().size();
+            partySize.current_size = PlayerInfo.get(SocialData.class).getPlayerParty().getPartyMembers().size();
             partySize.max_size = 15;
             richPresenceParty.size = partySize;
         }
@@ -339,7 +344,7 @@ public class RichProfile {
             richPresenceParty.id = toBytes(joinSecret.id, 128);
             richPresenceParty.privacy = EDiscordActivityPartyPrivacy.DiscordActivityParty_Privacy_Private;
             DiscordPartySize partySize = new DiscordPartySize();
-            partySize.current_size = PlayerInfo.getPlayerInfo().getPlayerParty().getPartyMembers().size();
+            partySize.current_size = PlayerInfo.get(SocialData.class).getPlayerParty().getPartyMembers().size();
             partySize.max_size = 15;
             richPresenceParty.size = partySize;
         }
@@ -390,7 +395,7 @@ public class RichProfile {
             richPresenceParty.id = toBytes(joinSecret.id, 128);
             richPresenceParty.privacy = EDiscordActivityPartyPrivacy.DiscordActivityParty_Privacy_Private;
             DiscordPartySize partySize = new DiscordPartySize();
-            partySize.current_size = PlayerInfo.getPlayerInfo().getPlayerParty().getPartyMembers().size();
+            partySize.current_size = PlayerInfo.get(SocialData.class).getPlayerParty().getPartyMembers().size();
             partySize.max_size = 15;
             richPresenceParty.size = partySize;
         }
@@ -431,7 +436,7 @@ public class RichProfile {
                 lastStructure.secrets.join = toBytes(joinSecret.toString(), 128);
                 lastStructure.party.id = toBytes(joinSecret.id, 128);
                 lastStructure.party.privacy = EDiscordActivityPartyPrivacy.DiscordActivityParty_Privacy_Private;
-                lastStructure.party.size.current_size = PlayerInfo.getPlayerInfo().getPlayerParty().getPartyMembers().size();
+                lastStructure.party.size.current_size = PlayerInfo.get(SocialData.class).getPlayerParty().getPartyMembers().size();
                 lastStructure.party.size.max_size = 15;
             } else {
                 lastStructure.secrets.join = toBytes(null, 128);

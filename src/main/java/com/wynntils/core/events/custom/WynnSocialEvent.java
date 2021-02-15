@@ -1,16 +1,16 @@
 /*
- *  * Copyright © Wynntils - 2018 - 2021.
+ *  * Copyright © Wynntils - 2021.
  */
 
 package com.wynntils.core.events.custom;
 
 import com.wynntils.core.framework.instances.PlayerInfo;
 import com.wynntils.core.framework.instances.containers.PartyContainer;
+import com.wynntils.core.framework.instances.data.SocialData;
 import net.minecraft.client.Minecraft;
 import net.minecraftforge.fml.common.eventhandler.Event;
 
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.Set;
 
 /**
@@ -40,7 +40,7 @@ public class WynnSocialEvent extends Event {
         }
 
         public PartyContainer getParty() {
-            return PlayerInfo.getPlayerInfo().getPlayerParty();
+            return PlayerInfo.get(SocialData.class).getPlayerParty();
         }
 
         /**
@@ -84,7 +84,7 @@ public class WynnSocialEvent extends Event {
         }
 
         public Set<String> getGuildList() {
-            return PlayerInfo.getPlayerInfo().getGuildList();
+            return PlayerInfo.get(SocialData.class).getGuildMembersList();
         }
 
         /** (Not used yet)

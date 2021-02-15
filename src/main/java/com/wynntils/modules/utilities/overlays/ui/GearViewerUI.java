@@ -1,16 +1,8 @@
 /*
- *  * Copyright © Wynntils - 2018 - 2021.
+ *  * Copyright © Wynntils - 2021.
  */
 
 package com.wynntils.modules.utilities.overlays.ui;
-
-import static net.minecraft.util.text.TextFormatting.*;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Stream;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
@@ -21,6 +13,7 @@ import com.wynntils.Reference;
 import com.wynntils.core.framework.enums.ClassType;
 import com.wynntils.core.framework.enums.SpellType;
 import com.wynntils.core.framework.instances.PlayerInfo;
+import com.wynntils.core.framework.instances.data.CharacterData;
 import com.wynntils.core.utils.ItemUtils;
 import com.wynntils.core.utils.StringUtils;
 import com.wynntils.modules.utilities.instances.ContainerGearViewer;
@@ -33,7 +26,6 @@ import com.wynntils.webapi.profiles.item.ItemProfile;
 import com.wynntils.webapi.profiles.item.enums.MajorIdentification;
 import com.wynntils.webapi.profiles.item.objects.IdentificationContainer;
 import com.wynntils.webapi.profiles.item.objects.ItemRequirementsContainer;
-
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityOtherPlayerMP;
 import net.minecraft.client.gui.inventory.GuiInventory;
@@ -49,6 +41,14 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagInt;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.text.TextFormatting;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Stream;
+
+import static net.minecraft.util.text.TextFormatting.*;
 
 public class GearViewerUI extends FakeGuiContainer {
 
@@ -143,7 +143,7 @@ public class GearViewerUI extends FakeGuiContainer {
 
         // disable viewing unidentified items
         if (stack.getItem() == Items.STONE_SHOVEL && stack.getItemDamage() >= 1 && stack.getItemDamage() <= 6) {
-            stack.setStackDisplayName(item.getTier().getColor() + "Unidentified Item");
+            stack.setStackDisplayName(item.getTier().getTextColor() + "Unidentified Item");
             return;
         }
 
@@ -250,7 +250,7 @@ public class GearViewerUI extends FakeGuiContainer {
                     if (requiredClass != null) {
                         longName = spell.forOtherClass(requiredClass).getName() + " Spell Cost";
                     } else {
-                        longName = spell.forOtherClass(PlayerInfo.getPlayerInfo().getCurrentClass()).getGenericAndSpecificName() + " Cost";
+                        longName = spell.forOtherClass(PlayerInfo.get(CharacterData.class).getCurrentClass()).getGenericAndSpecificName() + " Cost";
                     }
                 }
 
@@ -265,9 +265,9 @@ public class GearViewerUI extends FakeGuiContainer {
 
                 // set stars
                 if ((!isInverted && value > 0) || (isInverted && value < 0)) {
-                    if (pct >= 1.01) lore += DARK_GREEN + "*";
-                    if (pct >= 1.25) lore += "*";
-                    if (pct >= 1.30) lore += "*";
+                    if (pct > 1) lore += DARK_GREEN + "*";
+                    if (pct > 1.24) lore += "*";
+                    if (pct > 1.29) lore += "*";
                 }
 
                 lore += " " + GRAY + longName;
@@ -335,7 +335,7 @@ public class GearViewerUI extends FakeGuiContainer {
         }
 
         ItemUtils.replaceLore(stack, itemLore);
-        stack.setStackDisplayName(item.getTier().getColor() + item.getDisplayName());
+        stack.setStackDisplayName(item.getTier().getTextColor() + item.getDisplayName());
     }
 
     private void copyInventory(InventoryPlayer destination, InventoryPlayer source) {
@@ -350,7 +350,7 @@ public class GearViewerUI extends FakeGuiContainer {
 
         if (ModCore.mc().objectMouseOver == null) return;
         Entity e = ModCore.mc().objectMouseOver.entityHit;
-        if (e == null || !(e instanceof EntityPlayer)) return;
+        if (!(e instanceof EntityPlayer)) return;
         EntityPlayer ep = (EntityPlayer) e;
         if (ep.getTeam() == null) return; // player model npc
 

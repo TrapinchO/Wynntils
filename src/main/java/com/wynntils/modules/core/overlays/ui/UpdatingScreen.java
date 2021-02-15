@@ -8,6 +8,7 @@ import com.wynntils.Reference;
 import com.wynntils.modules.core.CoreModule;
 import com.wynntils.modules.core.config.CoreDBConfig;
 import com.wynntils.modules.core.overlays.UpdateOverlay;
+
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.util.math.MathHelper;
@@ -26,6 +27,7 @@ public class UpdatingScreen extends GuiScreen {
     private static final int DOT_TIME = 200;  // ms between "." -> ".." -> "..."
 
     private boolean failed = false;
+    private boolean complete = false;
     private GuiButton backButton;
     private float progress = 0f;
 
@@ -40,7 +42,7 @@ public class UpdatingScreen extends GuiScreen {
     }
 
     private void updateText() {
-        backButton.displayString = failed ? "Back" : "Cancel";
+        backButton.displayString = (failed || complete) ? "Back" : "Cancel";
     }
 
     private void doUpdate(boolean restartNow) {
@@ -56,6 +58,8 @@ public class UpdatingScreen extends GuiScreen {
                     if (restartNow) {
                         mc.shutdown();
                     }
+                    complete = true;
+                    updateText();
                 }
             }, "Wynntils-update-downloader-thread").start();
         } catch (Exception ex) {
@@ -92,35 +96,33 @@ public class UpdatingScreen extends GuiScreen {
             File fileSaved = new File(directory, URLDecoder.decode(urlParts[urlParts.length - 1], "UTF-8"));
 
             InputStream fis = st.getInputStream();
-            OutputStream fos = new FileOutputStream(fileSaved);
+            try (OutputStream fos = new FileOutputStream(fileSaved)) {
 
-            byte[] data = new byte[1024];
-            long total = 0;
-            int count;
+                byte[] data = new byte[1024];
+                long total = 0;
+                int count;
 
-            while ((count = fis.read(data)) != -1) {
-                if (mc.currentScreen != UpdatingScreen.this) {
-                    // Cancelled
-                    fos.close();
-                    fis.close();
-                    failed = true;
-                    setChangelogs();
-                    return;
+                while ((count = fis.read(data)) != -1) {
+                    if (mc.currentScreen != UpdatingScreen.this) {
+                        // Cancelled
+                        fos.close();
+                        fis.close();
+                        failed = true;
+                        setChangelogs();
+                        return;
+                    }
+
+                    total += count;
+                    progress = total / fileLength;
+                    fos.write(data, 0, count);
                 }
 
-                total += count;
-                progress = total / fileLength;
-                fos.write(data, 0, count);
             }
-
-            fos.flush();
-            fos.close();
             fis.close();
 
             if (mc.currentScreen != UpdatingScreen.this) {
                 failed = true;
                 setChangelogs();
-                return;
             }
         } catch (Exception ex) {
             ex.printStackTrace();
@@ -152,7 +154,9 @@ public class UpdatingScreen extends GuiScreen {
 
         if (failed) {
             setChangelogs();
-            drawCenteredString(mc.fontRenderer, TextFormatting.RED + "Update download failed", this.width/2, this.width/2, 0xFFFFFFFF);
+            drawCenteredString(mc.fontRenderer, TextFormatting.RED + "Update download failed", this.width/2, this.height/2, 0xFFFFFFFF);
+        } else if (complete) {
+            drawCenteredString(mc.fontRenderer, TextFormatting.GREEN + "Update download complete", this.width/2, this.height/2, 0xFFFFFF);
         } else {
             int left = Math.max(this.width/2 - 100, 10);
             int right = Math.min(this.width/2 + 100, this.width - 10);

@@ -1,12 +1,12 @@
 /*
- *  * Copyright © Wynntils - 2018 - 2021.
+ *  * Copyright © Wynntils - 2021.
  */
 
 package com.wynntils;
 
 import com.sun.jna.Platform;
-import com.wynntils.core.framework.enums.ClassType;
 import com.wynntils.core.framework.instances.PlayerInfo;
+import com.wynntils.core.framework.instances.data.CharacterData;
 import com.wynntils.modules.core.config.CoreDBConfig;
 import com.wynntils.modules.core.enums.UpdateStream;
 import com.wynntils.webapi.WebManager;
@@ -24,7 +24,7 @@ public class Reference {
     public static final String MINECRAFT_VERSIONS = "1.12,1.12.2";
     public static String VERSION = "";
     public static int BUILD_NUMBER = -1;
-    public static final File MOD_STORAGE_ROOT = ModCore.mc() == null ? new File("wynntils") : new File(ModCore.mc().gameDir, "wynntils");
+    public static final File MOD_STORAGE_ROOT = new File(ModCore.mc().gameDir, MOD_ID);
     public static final File NATIVES_ROOT = new File(Reference.MOD_STORAGE_ROOT, "natives");
     public static final File PLATFORM_NATIVES_ROOT = new File(NATIVES_ROOT, Platform.RESOURCE_PREFIX);
     public static final Logger LOGGER = LogManager.getFormatterLogger(MOD_ID);
@@ -45,12 +45,12 @@ public class Reference {
         onLobby = onServer && !onWorld;
     }
 
-    public static String getUserWorld() {
+    public static synchronized String getUserWorld() {
         return userWorld;
     }
 
     public static boolean inClassSelection() {
-        return onWorld && PlayerInfo.getPlayerInfo().getCurrentClass() == ClassType.NONE;
+        return onWorld && !PlayerInfo.get(CharacterData.class).isLoaded();
     }
 
     public static boolean onServer = false;
@@ -64,9 +64,7 @@ public class Reference {
     public static boolean developmentEnvironment = false;
 
     public static class ServerIPS {
-
         public static final String GAME = "play.wynncraft.com";
-
     }
 
 }

@@ -1,5 +1,5 @@
 /*
- *  * Copyright © Wynntils - 2018 - 2021.
+ *  * Copyright © Wynntils - 2021.
  */
 
 package com.wynntils.modules.utilities.overlays.inventories;
@@ -8,6 +8,7 @@ import com.wynntils.core.events.custom.GuiOverlapEvent;
 import com.wynntils.core.framework.enums.ClassType;
 import com.wynntils.core.framework.enums.SpellType;
 import com.wynntils.core.framework.instances.PlayerInfo;
+import com.wynntils.core.framework.instances.data.CharacterData;
 import com.wynntils.core.framework.interfaces.Listener;
 import com.wynntils.core.utils.ItemUtils;
 import com.wynntils.core.utils.StringUtils;
@@ -20,6 +21,8 @@ import com.wynntils.webapi.WebManager;
 import com.wynntils.webapi.profiles.item.IdentificationOrderer;
 import com.wynntils.webapi.profiles.item.ItemGuessProfile;
 import com.wynntils.webapi.profiles.item.ItemProfile;
+import com.wynntils.webapi.profiles.item.enums.IdentificationModifier;
+import com.wynntils.webapi.profiles.item.enums.ItemTier;
 import com.wynntils.webapi.profiles.item.enums.MajorIdentification;
 import com.wynntils.webapi.profiles.item.objects.IdentificationContainer;
 import net.minecraft.client.Minecraft;
@@ -93,7 +96,7 @@ public class ItemIdentificationOverlay implements Listener {
         ItemProfile item = WebManager.getItems().get(wynntils.getString("originName"));
 
         // Block if the item is not the real item
-        if (!wynntils.hasKey("isPerfect") && !stack.getDisplayName().startsWith(item.getTier().getColor())) {
+        if (!wynntils.hasKey("isPerfect") && !stack.getDisplayName().startsWith(item.getTier().getTextColor())) {
             nbt.setBoolean("wynntilsIgnore", true);
             nbt.removeTag("wynntils");
             return;
@@ -115,15 +118,19 @@ public class ItemIdentificationOverlay implements Listener {
         // Generating id lores
         Map<String, String> idLore = new HashMap<>();
 
-        double cumRelative = 0;
+        double relativeTotal = 0;
         int idAmount = 0;
+        boolean hasNewId = false;
 
         if (wynntils.hasKey("ids")) {
             NBTTagCompound ids = wynntils.getCompoundTag("ids");
             for (String idName : ids.getKeySet()) {
-                if (!item.getStatuses().containsKey(idName)) continue;
+                if (idName.contains("*")) continue; // star data, ignore
 
                 IdentificationContainer id = item.getStatuses().get(idName);
+                IdentificationModifier type = id != null ? id.getType() : IdentificationContainer.getTypeFromName(idName);
+                if (type == null) continue; // not a valid id
+
                 int currentValue = ids.getInteger(idName);
                 boolean isInverted = IdentificationOrderer.INSTANCE.isInverted(idName);
 
@@ -135,24 +142,35 @@ public class ItemIdentificationOverlay implements Listener {
                     if (requiredClass != null) {
                         longName = spell.forOtherClass(requiredClass).getName() + " Spell Cost";
                     } else {
-                        longName = spell.forOtherClass(PlayerInfo.getPlayerInfo().getCurrentClass()).getGenericAndSpecificName() + " Cost";
+                        longName = spell.forOtherClass(PlayerInfo.get(CharacterData.class).getCurrentClass()).getGenericAndSpecificName() + " Cost";
                     }
                 }
 
                 String lore;
                 if (isInverted)
                     lore = (currentValue < 0 ? GREEN.toString() : currentValue > 0 ? RED + "+" : GRAY.toString())
-                            + currentValue + id.getType().getInGame();
+                            + currentValue + type.getInGame();
                 else
                     lore = (currentValue < 0 ? RED.toString() : currentValue > 0 ? GREEN + "+" : GRAY.toString())
-                            + currentValue + id.getType().getInGame();
+                            + currentValue + type.getInGame();
 
                 if (UtilitiesConfig.Identifications.INSTANCE.addStars && ids.hasKey(idName + "*")) {
                     lore += DARK_GREEN + "***".substring(0, ids.getInteger(idName + "*"));
                 }
                 lore += " " + GRAY + longName;
 
+                if (id == null) { // id not in api
+                    idLore.put(idName, lore + GOLD + " NEW");
+                    hasNewId = true;
+                    continue;
+                }
+
                 if (id.hasConstantValue()) {
+                    if (id.getBaseValue() != currentValue) {
+                        idLore.put(idName, lore + GOLD + " NEW");
+                        hasNewId = true;
+                        continue;
+                    }
                     idLore.put(idName, lore);
                     continue;
                 }
@@ -160,7 +178,12 @@ public class ItemIdentificationOverlay implements Listener {
                 IdentificationResult result = idType.identify(id, currentValue, isInverted);
                 idLore.put(idName, lore + " " + result.getLore());
 
-                cumRelative += result.getAmount();
+                if (result.getAmount() > 1d || result.getAmount() < 0d) {
+                    hasNewId = true;
+                    continue;
+                }
+
+                relativeTotal += result.getAmount();
                 idAmount++;
             }
         }
@@ -292,16 +315,18 @@ public class ItemIdentificationOverlay implements Listener {
 
         // Special displayname
         String specialDisplay = "";
-        if (idAmount > 0 && cumRelative > 0) {
-            specialDisplay = " " + idType.getTitle(cumRelative/(double)idAmount);
+        if (hasNewId) {
+            specialDisplay = GOLD + " NEW";
+        } else if (idAmount > 0 && relativeTotal > 0) {
+            specialDisplay = " " + idType.getTitle(relativeTotal/(double)idAmount);
         }
 
         // check for item perfection
-        if (cumRelative/idAmount >= 1d && idType == IdentificationType.PERCENTAGES) {
+        if (relativeTotal/idAmount >= 1d && idType == IdentificationType.PERCENTAGES && !hasNewId) {
             wynntils.setBoolean("isPerfect", true);
         }
 
-        stack.setStackDisplayName(item.getTier().getColor() + item.getDisplayName() + specialDisplay);
+        stack.setStackDisplayName(item.getTier().getTextColor() + item.getDisplayName() + specialDisplay);
 
         // Applying lore
         NBTTagCompound compound = nbt.getCompoundTag("display");
@@ -337,42 +362,8 @@ public class ItemIdentificationOverlay implements Listener {
         Map<String, String> rarityMap = igp.getItems().get(itemType);
         if (rarityMap == null) return;
 
-        String items = null;
-        String color = null;
-        int baseCost = 0;
-        double costMultiplier = 1.0;
-
-        if (name.startsWith(YELLOW.toString())) {
-            items = rarityMap.get("Unique");
-            color = YELLOW.toString();
-            baseCost = 5;
-            costMultiplier = 0.5;
-        } else if (name.startsWith(LIGHT_PURPLE.toString())) {
-            items = rarityMap.get("Rare");
-            color = LIGHT_PURPLE.toString();
-            baseCost = 15;
-            costMultiplier = 1.2;
-        } else if (name.startsWith(AQUA.toString())) {
-            items = rarityMap.get("Legendary");
-            color = AQUA.toString();
-            baseCost = 35;
-            costMultiplier = 4.8;
-        } else if (name.startsWith(RED.toString())) {
-            items = rarityMap.get("Fabled");
-            color = RED.toString();
-            baseCost = 60;
-            costMultiplier = 12.0;
-        } else if (name.startsWith(DARK_PURPLE.toString())) {
-            items = rarityMap.get("Mythic");
-            color = DARK_PURPLE.toString();
-            baseCost = 90;
-            costMultiplier = 18.0;
-        } else if (name.startsWith(GREEN.toString())) {
-            items = rarityMap.get("Set");
-            color = GREEN.toString();
-            baseCost = 12;
-            costMultiplier = 1.6;
-        }
+        ItemTier tier = ItemTier.fromTextColoredString(name);
+        String items = rarityMap.get(tier.asCapitalizedName());
 
         if (items == null) return;
         String itemNamesAndCosts = "";
@@ -382,11 +373,11 @@ public class ItemIdentificationOverlay implements Listener {
             String itemDescription;
             if (UtilitiesConfig.Identifications.INSTANCE.showGuessesPrice && itemProfile != null) {
                 int level = itemProfile.getRequirements().getLevel();
-                int itemCost = baseCost + (int) Math.ceil(level*costMultiplier);
-                itemDescription = color + possibleItem + GRAY + " [" + GREEN + itemCost + " "
+                int itemCost = tier.getItemIdentificationCost(level);
+                itemDescription = tier.getTextColor() + possibleItem + GRAY + " [" + GREEN + itemCost + " "
                         + EmeraldSymbols.E_STRING + GRAY + "]";
             } else {
-                itemDescription = color + possibleItem;
+                itemDescription = tier.getTextColor() + possibleItem;
             }
             if (!itemNamesAndCosts.isEmpty()) {
                 itemNamesAndCosts += GRAY + ", ";

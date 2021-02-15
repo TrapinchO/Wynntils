@@ -1,5 +1,5 @@
 /*
- *  * Copyright © Wynntils - 2018 - 2021.
+ *  * Copyright © Wynntils - 2021.
  */
 
 package com.wynntils.modules.questbook.managers;
@@ -35,7 +35,7 @@ import static net.minecraft.util.text.TextFormatting.*;
 
 public class QuestManager {
 
-    private static final Pattern QUEST_BOOK_WINDOW_TITLE_PATTERN = Pattern.compile("\\[Pg\\. \\d+] [a-zA-Z0-9_ ]{1,19}'s? (?:Discoveries|(?:Mini-)?Quests)");
+    private static final Pattern QUEST_BOOK_WINDOW_TITLE_PATTERN = Pattern.compile("\\[Pg\\. \\d+] [a-zA-Z0-9_ ]+'s? (?:Discoveries|(?:Mini-)?Quests)");
     private static final int MESSAGE_ID = 423375494;
 
     private static FakeInventory lastInventory = null;
@@ -141,7 +141,7 @@ public class QuestManager {
 
                     List<String> lore = ItemUtils.getUnformattedLore(stack);
                     // uppercase on beta
-                    if (lore.isEmpty() || (!lore.contains("Right click to track") && !lore.contains("RIGHT-CLICK TO TRACK"))) continue; // not a valid quest
+                    if (lore.isEmpty() || (!lore.contains("Right click to track") && !lore.contains("RIGHT-CLICK TO TRACK") && !lore.contains("Right click to stop tracking"))) continue; // not a valid quest
 
                     if (fullRead) {
                         gatheredQuests.add(stack);
@@ -466,7 +466,7 @@ public class QuestManager {
     private static void sendMessage(String msg) {
         // Can be called from nio thread by FakeInventory
         Minecraft.getMinecraft().addScheduledTask(() ->
-                ChatOverlay.getChat().printChatMessageWithOptionalDeletion(new TextComponentString(msg), MESSAGE_ID)
+            ChatOverlay.getChat().printChatMessageWithOptionalDeletion(new TextComponentString(msg), MESSAGE_ID)
         );
     }
 

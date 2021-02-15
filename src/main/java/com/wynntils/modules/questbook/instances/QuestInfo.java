@@ -1,5 +1,5 @@
 /*
- *  * Copyright © Wynntils - 2018 - 2021.
+ *  * Copyright © Wynntils - 2021.
  */
 
 package com.wynntils.modules.questbook.instances;
@@ -29,13 +29,13 @@ public class QuestInfo {
 
     private static final Pattern coordinatePattern = Pattern.compile("\\[(-?\\d+), ?(-?\\d+), ?(-?\\d+)\\]");
 
-    private ItemStack originalStack;
+    private final ItemStack originalStack;
 
-    private String name;
-    private Map<QuestLevelType, Integer> minLevels = new HashMap<>();
+    private final String name;
+    private final Map<QuestLevelType, Integer> minLevels = new HashMap<>();
     private QuestStatus status;
     private QuestSize size;
-    private List<String> lore;
+    private final List<String> lore;
     private String description;
 
     private String friendlyName;
@@ -43,14 +43,14 @@ public class QuestInfo {
     private Location targetLocation = null;
 
     private boolean valid = false;
-    private boolean isMiniQuest;
+    private final boolean isMiniQuest;
 
     public QuestInfo(ItemStack originalStack, boolean isMiniQuest) {
         this.originalStack = originalStack;
         this.isMiniQuest = isMiniQuest;
 
         lore = ItemUtils.getLore(originalStack);
-        name = StringUtils.normalizeBadString(getTextWithoutFormattingCodes(originalStack.getDisplayName()));
+        name = StringUtils.normalizeBadString(getTextWithoutFormattingCodes(originalStack.getDisplayName())).replace(" [Tracked]", "");
 
         Iterator<String> loreIterator = lore.iterator();
 
@@ -77,14 +77,17 @@ public class QuestInfo {
         StringBuilder descriptionBuilder = new StringBuilder();
         while (loreIterator.hasNext()) {
             String description = loreIterator.next();
-            if (description.equalsIgnoreCase(GRAY + "Right click to track") || description.equalsIgnoreCase(LIGHT_PURPLE + "" + BOLD + "RIGHT-CLICK TO TRACK")) {
+            if (description.equalsIgnoreCase(DARK_RED + "Right click to stop tracking") || description.equalsIgnoreCase(LIGHT_PURPLE + "" + BOLD + "RIGHT-CLICK TO TRACK")) {
                 break;
             }
+
             if (descriptionBuilder.length() > 0 && !descriptionBuilder.substring(descriptionBuilder.length() - 1).equals(" ")) {
                 descriptionBuilder.append(" ");
             }
+
             descriptionBuilder.append(getTextWithoutFormattingCodes(description));
         }
+
         description = descriptionBuilder.toString();
 
         // splitted description
@@ -198,4 +201,5 @@ public class QuestInfo {
     public String toString() {
         return name + ":" + minLevels + ":" + size.toString() + ":" + status.toString() + ":" + description;
     }
+
 }

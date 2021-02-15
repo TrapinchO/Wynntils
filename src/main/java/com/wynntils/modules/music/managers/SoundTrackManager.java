@@ -1,5 +1,5 @@
 /*
- *  * Copyright © Wynntils - 2018 - 2021.
+ *  * Copyright © Wynntils - 2021.
  */
 
 package com.wynntils.modules.music.managers;
@@ -73,6 +73,7 @@ public class SoundTrackManager {
      * @param fadeOut if while transitioning the old song should fadeOut
      * @param repeat if the song should repeat until changed
      * @param lockQueue no more songs will be allowed until the provided ends
+     * @param quiet if the song should use default or offocus volume
      */
     private static void playSong(MusicProfile song, boolean fastSwitch, boolean fadeIn, boolean fadeOut, boolean repeat, boolean lockQueue, boolean quiet) {
         if (!MusicConfig.INSTANCE.enabled || song == null) return;
@@ -85,9 +86,10 @@ public class SoundTrackManager {
 
         // check if it was already downloaded or in download
         if (downloadedMusics.containsKey(song.getAsHash())) {
-            if (!downloadedMusics.get(song.getAsHash()).getFile().isPresent()) return; // available to play (downloaded)
+            Optional<File> songFile = downloadedMusics.get(song.getAsHash()).getFile();
+            if (!songFile.isPresent()) return; // available to play (downloaded)
 
-            player.play(downloadedMusics.get(song.getAsHash()).getFile().get(), fadeIn, fadeOut, fastSwitch, repeat, lockQueue, quiet);
+            player.play(songFile.get(), fadeIn, fadeOut, fastSwitch, repeat, lockQueue, quiet);
             return;
         }
 
@@ -111,6 +113,7 @@ public class SoundTrackManager {
      * @param fadeOut if while transitioning the old song should fadeOut
      * @param repeat if the song should repeat until changed
      * @param lockQueue no more songs will be allowed until the provided ends
+     * @param quiet if the song should use default or offocus volume
      */
     public static void findTrack(String fullName, boolean fastSwitch, boolean fadeIn, boolean fadeOut, boolean repeat, boolean lockQueue, boolean quiet) {
         if (!MusicConfig.INSTANCE.enabled || fullName == null) return;
